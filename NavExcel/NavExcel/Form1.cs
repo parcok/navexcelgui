@@ -26,6 +26,8 @@ namespace NavExcel {
                     textBox1.Text = path;
                 }
             }
+            //path = "\\\\yyzfp1\\transfer\\yyz Specialty Masters\\16 - Basic VFR\\Kevin Parco BAC Scripts";
+            //textBox1.Text = path;
         }
 
         private void button2_Click(object sender, EventArgs e) {
@@ -41,96 +43,261 @@ namespace NavExcel {
                         //Console.Write("FILE: " + file + " - ");
                         Excel.Application excel = new Excel.Application();
                         Excel.Workbook workbook = excel.Workbooks.Open(file);
-                        Excel.Worksheet airSheet = excel.Sheets[1];
-                        Excel.Worksheet groundSheet = excel.Sheets[2];
                         excel.DisplayAlerts = false;
+                        if (excel.Sheets.Count == 3) { // When they have Air/Ground/Parking
+                            Excel.Worksheet airSheet = excel.Sheets[1];
+                            Excel.Worksheet groundSheet = excel.Sheets[2];
+                            //excel.DisplayAlerts = false;
+                            // Cells go down then across
+                            if ((string)airSheet.Cells[4, 1].value2 == "TIME") {
+                                // THE WORKING SOLUTION TO FIND THE AMOUNT OF USED ROWS
+                                int airRowAmount = airSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                int groundRowAmount = groundSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                // END OF THE WORKING SOLUTION TO FIND THE RIGHT AMOUNT OF USED ROWS
 
-                        // Cells go down then across
-                        if ((string)airSheet.Cells[4, 1].value2 == "TIME") {
-                            // THE WORKING SOLUTION TO FIND THE AMOUNT OF USED ROWS
-                            int airRowAmount = airSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
-                            int groundRowAmount = groundSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
-                            // END OF THE WORKING SOLUTION TO FIND THE RIGHT AMOUNT OF USED ROWS
 
+                                // Add colour to the tables
+                                Excel.Range airTable = airSheet.Range["A4:G" + airRowAmount];
+                                airTable.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9"); // MATCH WITH AIRSHEET
+                                groundSheet.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH TITLERANGE
 
-                            // Add colour to the tables
-                            Excel.Range airTable = airSheet.Range["A4:G" + airRowAmount];
-                            airTable.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9"); // MATCH WITH AIRSHEET
-                            groundSheet.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH TITLERANGE
+                                // Copy from ground to air
+                                string rangeToCopy = "A4:G" + groundRowAmount;
+                                Excel.Range rangeFrom = groundSheet.Range[rangeToCopy];
+                                Excel.Range rangeTo = airSheet.Range["A" + (airRowAmount + 2)];
+                                rangeFrom.Copy(rangeTo);
 
-                            // Copy from ground to air
-                            string rangeToCopy = "A4:G" + groundRowAmount;
-                            Excel.Range rangeFrom = groundSheet.Range[rangeToCopy];
-                            Excel.Range rangeTo = airSheet.Range["A" + (airRowAmount + 2)];
-                            rangeFrom.Copy(rangeTo);
+                                // Title for ground
+                                airSheet.Range["A" + (airRowAmount + 1)].Cells.Font.Size = 36;
+                                airSheet.Range["A" + (airRowAmount + 1)].Value2 = "GROUND";
+                                Excel.Range titleRange = airSheet.Range["A" + (airRowAmount + 1) + ":G" + (airRowAmount + 1)];
+                                MergeAndCenter(titleRange);
+                                titleRange.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH GROUNDSHEET
+                                titleRange.Cells.Font.Bold = true;
 
-                            // Title for ground
-                            airSheet.Range["A" + (airRowAmount + 1)].Cells.Font.Size = 36;
-                            airSheet.Range["A" + (airRowAmount + 1)].Value2 = "GROUND";
-                            Excel.Range titleRange = airSheet.Range["A" + (airRowAmount + 1) + ":G" + (airRowAmount + 1)];
-                            MergeAndCenter(titleRange);
-                            titleRange.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH GROUNDSHEET
-                            titleRange.Cells.Font.Bold = true;
+                                // Get the total amount of rows
+                                int totalRowAmount = airSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
 
-                            // Get the total amount of rows
-                            int totalRowAmount = airSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                // Need to get the range of the data we copied over, isolate the vehicles, then sort again
+                                Excel.Range groundTable = airSheet.Range["A" + (airRowAmount + 3) + ":G" + totalRowAmount];
+                                groundTable.Sort(groundTable.Columns[3, Type.Missing], Excel.XlSortOrder.xlDescending, groundTable.Columns[3, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
 
-                            // Need to get the range of the data we copied over, isolate the vehicles, then sort again
-                            Excel.Range groundTable = airSheet.Range["A" + (airRowAmount + 3) + ":G" + totalRowAmount];
-                            groundTable.Sort(groundTable.Columns[3, Type.Missing], Excel.XlSortOrder.xlDescending, groundTable.Columns[3, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
-
-                            int vehicleAmount = 0;
-                            Excel.Range vehicleGrab = airSheet.Range["C" + (airRowAmount + 3) + ":C" + totalRowAmount];
-                            foreach (Excel.Range item in vehicleGrab.Cells) {
-                                if (item.Text == "") {
-                                    vehicleAmount++;
+                                int vehicleAmount = 0;
+                                Excel.Range vehicleGrab = airSheet.Range["C" + (airRowAmount + 3) + ":C" + totalRowAmount];
+                                foreach (Excel.Range item in vehicleGrab.Cells) {
+                                    if (item.Text == "") {
+                                        vehicleAmount++;
+                                    }
                                 }
+
+                                // Only if there are vehicles
+                                if (vehicleAmount > 0) {
+                                    Excel.Range sortNonVehicles = airSheet.Range["A" + (airRowAmount + 3) + ":G" + (totalRowAmount - vehicleAmount)];
+                                    sortNonVehicles.Sort(groundTable.Columns[1, Type.Missing], Excel.XlSortOrder.xlAscending, groundTable.Columns[1, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+
+                                    Excel.Range sortVehicles = airSheet.Range["A" + (totalRowAmount - vehicleAmount + 1) + ":G" + totalRowAmount];
+                                    sortVehicles.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#FFCAAF");
+                                    sortVehicles.Sort(groundTable.Columns[1, Type.Missing], Excel.XlSortOrder.xlAscending, groundTable.Columns[1, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+                                }
+
+                                // Title for tower
+                                Excel.Range towerTitle = (Excel.Range)airSheet.Rows[4];
+                                towerTitle.Insert();
+                                airSheet.Range["A4"].Cells.Font.Size = 36;
+                                airSheet.Range["A4"].Value2 = "TOWER";
+                                towerTitle = airSheet.Range["A4:G4"];
+                                MergeAndCenter(towerTitle);
+                                towerTitle.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9");
+                                towerTitle.Cells.Font.Bold = true;
+
+                                // Fix borders
+                                Excel.Range fixBorders = airSheet.Range["A4:G" + (totalRowAmount + 1)];
+                                fixBorders.Cells.Borders.Weight = Excel.XlBorderWeight.xlThick;// (Excel.XlLineStyle.xlContinuous, Excel.XlBorderWeight.xlThick, Excel.XlColorIndex.xlColorIndexAutomatic, System.Drawing.Color.Black, System.Drawing.Color.Black);
+
+                                airSheet.Sort.SortFields.Clear();
+
+                                airSheet.Columns.AutoFit();
+                                airSheet.Rows.AutoFit();
+
+                                airSheet.PageSetup.PrintArea = "A1:G" + (totalRowAmount + 1);
+
+                                excel.DisplayAlerts = false;
+                                workbook.Sheets[2].delete();
+                                workbook.Sheets[2].delete();
+                                if (file.EndsWith(".xls")) {
+                                    workbook.SaveAs(file + "x", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                } else {
+                                    workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                }
+                                File.Delete(file);
                             }
+                        } else if (excel.Sheets.Count == 2) { // Air and Parking
+                            Excel.Worksheet sheet = excel.Sheets[1];
+                            if (sheet.Name == "AIR" && excel.Sheets[2].Name == "PARKING") {
+                                int totalRowAmount = sheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                Excel.Range airTable = sheet.Range["A4:G" + totalRowAmount];
+                                airTable.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9"); // MATCH WITH AIRSHEET
+                                                                                                                    // Title for Tower
+                                Excel.Range towerTitle = (Excel.Range)sheet.Rows[4];
+                                towerTitle.Insert();
+                                sheet.Range["A4"].Cells.Font.Size = 36;
+                                sheet.Range["A4"].Value2 = "TOWER";
+                                towerTitle = sheet.Range["A4:G4"];
+                                MergeAndCenter(towerTitle);
+                                towerTitle.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9");
+                                towerTitle.Cells.Font.Bold = true;
 
-                            // Only if there are vehicles
-                            if (vehicleAmount > 0) {
-                                Excel.Range sortNonVehicles = airSheet.Range["A" + (airRowAmount + 3) + ":G" + (totalRowAmount - vehicleAmount)];
-                                sortNonVehicles.Sort(groundTable.Columns[1, Type.Missing], Excel.XlSortOrder.xlAscending, groundTable.Columns[1, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+                                sheet.Sort.SortFields.Clear();
+                                sheet.Columns.AutoFit();
+                                sheet.Rows.AutoFit();
+                                sheet.PageSetup.PrintArea = "A1:G" + (totalRowAmount + 1);
+                                // Fix borders
+                                Excel.Range fixBorders = sheet.Range["A4:G" + (totalRowAmount + 1)];
+                                fixBorders.Cells.Borders.Weight = Excel.XlBorderWeight.xlThick;
+                                excel.Sheets[2].delete();
+                                if (file.EndsWith(".xls")) {
+                                    workbook.SaveAs(file + "x", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                } else {
+                                    workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                }
+                                File.Delete(file);
+                            } else if (sheet.Name == "AIR" && excel.Sheets[2].Name == "GROUND") { // Air and Ground
+                                Excel.Worksheet airSheet = excel.Sheets[1];
+                                Excel.Worksheet groundSheet = excel.Sheets[2];
+                                // THE WORKING SOLUTION TO FIND THE AMOUNT OF USED ROWS
+                                int airRowAmount = airSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                int groundRowAmount = groundSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                // END OF THE WORKING SOLUTION TO FIND THE RIGHT AMOUNT OF USED ROWS
 
-                                Excel.Range sortVehicles = airSheet.Range["A" + (totalRowAmount - vehicleAmount + 1) + ":G" + totalRowAmount];
-                                sortVehicles.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#FFCAAF");
-                                sortVehicles.Sort(groundTable.Columns[1, Type.Missing], Excel.XlSortOrder.xlAscending, groundTable.Columns[1, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+
+                                // Add colour to the tables
+                                Excel.Range airTable = airSheet.Range["A4:G" + airRowAmount];
+                                airTable.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9"); // MATCH WITH AIRSHEET
+                                groundSheet.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH TITLERANGE
+
+                                // Copy from ground to air
+                                string rangeToCopy = "A4:G" + groundRowAmount;
+                                Excel.Range rangeFrom = groundSheet.Range[rangeToCopy];
+                                Excel.Range rangeTo = airSheet.Range["A" + (airRowAmount + 2)];
+                                rangeFrom.Copy(rangeTo);
+
+                                // Title for ground
+                                airSheet.Range["A" + (airRowAmount + 1)].Cells.Font.Size = 36;
+                                airSheet.Range["A" + (airRowAmount + 1)].Value2 = "GROUND";
+                                Excel.Range titleRange = airSheet.Range["A" + (airRowAmount + 1) + ":G" + (airRowAmount + 1)];
+                                MergeAndCenter(titleRange);
+                                titleRange.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH GROUNDSHEET
+                                titleRange.Cells.Font.Bold = true;
+
+                                // Get the total amount of rows
+                                int totalRowAmount = airSheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+
+                                // Need to get the range of the data we copied over, isolate the vehicles, then sort again
+                                Excel.Range groundTable = airSheet.Range["A" + (airRowAmount + 3) + ":G" + totalRowAmount];
+                                groundTable.Sort(groundTable.Columns[3, Type.Missing], Excel.XlSortOrder.xlDescending, groundTable.Columns[3, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+
+                                int vehicleAmount = 0;
+                                Excel.Range vehicleGrab = airSheet.Range["C" + (airRowAmount + 3) + ":C" + totalRowAmount];
+                                foreach (Excel.Range item in vehicleGrab.Cells) {
+                                    if (item.Text == "") {
+                                        vehicleAmount++;
+                                    }
+                                }
+
+                                // Only if there are vehicles
+                                if (vehicleAmount > 0) {
+                                    Excel.Range sortNonVehicles = airSheet.Range["A" + (airRowAmount + 3) + ":G" + (totalRowAmount - vehicleAmount)];
+                                    sortNonVehicles.Sort(groundTable.Columns[1, Type.Missing], Excel.XlSortOrder.xlAscending, groundTable.Columns[1, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+
+                                    Excel.Range sortVehicles = airSheet.Range["A" + (totalRowAmount - vehicleAmount + 1) + ":G" + totalRowAmount];
+                                    sortVehicles.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#FFCAAF");
+                                    sortVehicles.Sort(groundTable.Columns[1, Type.Missing], Excel.XlSortOrder.xlAscending, groundTable.Columns[1, Type.Missing], Type.Missing, Excel.XlSortOrder.xlAscending, Type.Missing, Excel.XlSortOrder.xlAscending, Excel.XlYesNoGuess.xlYes, Type.Missing, Type.Missing, Excel.XlSortOrientation.xlSortColumns, Excel.XlSortMethod.xlPinYin, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal, Excel.XlSortDataOption.xlSortNormal);
+                                }
+                                // Title for tower
+                                Excel.Range towerTitle = (Excel.Range)airSheet.Rows[4];
+                                towerTitle.Insert();
+                                airSheet.Range["A4"].Cells.Font.Size = 36;
+                                airSheet.Range["A4"].Value2 = "TOWER";
+                                towerTitle = airSheet.Range["A4:G4"];
+                                MergeAndCenter(towerTitle);
+                                towerTitle.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9");
+                                towerTitle.Cells.Font.Bold = true;
+                                // Fix borders
+                                Excel.Range fixBorders = airSheet.Range["A4:G" + (totalRowAmount + 1)];
+                                fixBorders.Cells.Borders.Weight = Excel.XlBorderWeight.xlThick;// (Excel.XlLineStyle.xlContinuous, Excel.XlBorderWeight.xlThick, Excel.XlColorIndex.xlColorIndexAutomatic, System.Drawing.Color.Black, System.Drawing.Color.Black);
+                                airSheet.Sort.SortFields.Clear();
+                                airSheet.Columns.AutoFit();
+                                airSheet.Rows.AutoFit();
+                                airSheet.PageSetup.PrintArea = "A1:G" + (totalRowAmount + 1);
+                                excel.DisplayAlerts = false;
+                                workbook.Sheets[2].delete();
+                                if (file.EndsWith(".xls")) {
+                                    workbook.SaveAs(file + "x", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                } else {
+                                    workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                }
+                                File.Delete(file);
                             }
+                        } else if (excel.Sheets.Count == 1) { // Ground or Air by itself
+                            Excel.Worksheet sheet = excel.Sheets[1];
+                            if (sheet.Name == "AIR") {
+                                int totalRowAmount = sheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                Excel.Range airTable = sheet.Range["A4:G" + totalRowAmount];
+                                airTable.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9"); // MATCH WITH AIRSHEET
+                                // Title for Tower
+                                Excel.Range towerTitle = (Excel.Range)sheet.Rows[4];
+                                towerTitle.Insert();
+                                sheet.Range["A4"].Cells.Font.Size = 36;
+                                sheet.Range["A4"].Value2 = "TOWER";
+                                towerTitle = sheet.Range["A4:G4"];
+                                MergeAndCenter(towerTitle);
+                                towerTitle.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9");
+                                towerTitle.Cells.Font.Bold = true;
 
-                            // Title for tower
-                            Excel.Range towerTitle = (Excel.Range)airSheet.Rows[4];
-                            towerTitle.Insert();
-                            airSheet.Range["A4"].Cells.Font.Size = 36;
-                            airSheet.Range["A4"].Value2 = "TOWER";
-                            towerTitle = airSheet.Range["A4:G4"];
-                            MergeAndCenter(towerTitle);
-                            towerTitle.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#C6E2E9");
-                            towerTitle.Cells.Font.Bold = true;
+                                sheet.Sort.SortFields.Clear();
+                                sheet.Columns.AutoFit();
+                                sheet.Rows.AutoFit();
+                                sheet.PageSetup.PrintArea = "A1:G" + (totalRowAmount + 1);
+                                // Fix borders
+                                Excel.Range fixBorders = sheet.Range["A4:G" + (totalRowAmount + 1)];
+                                fixBorders.Cells.Borders.Weight = Excel.XlBorderWeight.xlThick;
+                                if (file.EndsWith(".xls")) {
+                                    workbook.SaveAs(file + "x", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                } else {
+                                    workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                }
+                                File.Delete(file);
+                            } else if (sheet.Name == "GROUND") {
+                                int totalRowAmount = sheet.Cells.Find("*", System.Reflection.Missing.Value, Excel.XlFindLookIn.xlValues, Excel.XlLookAt.xlWhole, Excel.XlSearchOrder.xlByRows, Excel.XlSearchDirection.xlPrevious, false, System.Reflection.Missing.Value, System.Reflection.Missing.Value).Row;
+                                Excel.Range airTable = sheet.Range["A4:F" + totalRowAmount];
+                                airTable.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4"); // MATCH WITH AIRSHEET
+                                // Title for Ground
+                                Excel.Range groundTitle = (Excel.Range)sheet.Rows[4];
+                                groundTitle.Insert();
+                                sheet.Range["A4"].Cells.Font.Size = 36;
+                                sheet.Range["A4"].Value2 = "GROUND";
+                                groundTitle = sheet.Range["A4:F4"];
+                                MergeAndCenter(groundTitle);
+                                groundTitle.Cells.Interior.Color = System.Drawing.ColorTranslator.FromHtml("#F1FFC4");
+                                groundTitle.Cells.Font.Bold = true;
 
-                            // Fix borders
-                            Excel.Range fixBorders = airSheet.Range["A4:G" + (totalRowAmount + 1)];
-                            fixBorders.Cells.Borders.Weight = Excel.XlBorderWeight.xlThick;// (Excel.XlLineStyle.xlContinuous, Excel.XlBorderWeight.xlThick, Excel.XlColorIndex.xlColorIndexAutomatic, System.Drawing.Color.Black, System.Drawing.Color.Black);
-
-                            airSheet.Sort.SortFields.Clear();
-
-                            airSheet.Columns.AutoFit();
-                            airSheet.Rows.AutoFit();
-
-                            airSheet.PageSetup.PrintArea = "A1:G" + (totalRowAmount + 1);
-
-                            excel.DisplayAlerts = false;
-                            if (file.EndsWith(".xls")) {
-                                workbook.SaveAs(file + "x", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
-                            } else {
-                                workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                sheet.Sort.SortFields.Clear();
+                                sheet.Columns.AutoFit();
+                                sheet.Rows.AutoFit();
+                                // Fix borders
+                                Excel.Range fixBorders = sheet.Range["A4:F" + (totalRowAmount + 1)];
+                                fixBorders.Cells.Borders.Weight = Excel.XlBorderWeight.xlThick;
+                                sheet.PageSetup.PrintArea = "A1:F" + (totalRowAmount + 1);
+                                if (file.EndsWith(".xls")) {
+                                    workbook.SaveAs(file + "x", Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                } else {
+                                    workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
+                                }
+                                File.Delete(file);
                             }
-
                         }
-                        workbook.Sheets[2].delete();
-                        workbook.Sheets[2].delete();
                         workbook.Close(true, Type.Missing, Type.Missing);
                         excel.Quit();
-
                     } catch {
                         textBox2.Text += "Couldn't open " + file + "\r\n";
                     }
@@ -150,8 +317,7 @@ namespace NavExcel {
         }
 
         public static void MergeAndCenter(Excel.Range MergeRange) {
-            MergeRange.Select();
-
+            // MergeRange.Select();
             MergeRange.HorizontalAlignment = Excel.XlHAlign.xlHAlignCenter;
             MergeRange.VerticalAlignment = Excel.XlVAlign.xlVAlignBottom;
             MergeRange.WrapText = false;
