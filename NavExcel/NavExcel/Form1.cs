@@ -26,8 +26,8 @@ namespace NavExcel {
                     textBox1.Text = path;
                 }
             }
-            //path = "\\\\yyzfp1\\transfer\\yyz Specialty Masters\\16 - Basic VFR\\Kevin Parco BAC Scripts";
-            //textBox1.Text = path;
+            path = "D:\\Temp\\Kevin Parco BAC Scripts";
+            textBox1.Text = path;
         }
 
         private void button2_Click(object sender, EventArgs e) {
@@ -130,6 +130,8 @@ namespace NavExcel {
                                     workbook.SaveAs(file, Microsoft.Office.Interop.Excel.XlFileFormat.xlWorkbookDefault, Type.Missing, Type.Missing, false, false, Excel.XlSaveAsAccessMode.xlNoChange, Excel.XlSaveConflictResolution.xlLocalSessionChanges, Type.Missing, Type.Missing);
                                 }
                                 File.Delete(file);
+                            } else {
+                                textBox2.Text += file + " does not match template.";
                             }
                         } else if (excel.Sheets.Count == 2) { // Air and Parking
                             Excel.Worksheet sheet = excel.Sheets[1];
